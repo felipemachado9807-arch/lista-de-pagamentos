@@ -1,0 +1,43 @@
+name: Gerar APK Android
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "ListaPagamentosAndroid_Celular (1).zip"
+      - ".github/workflows/android.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar arquivos
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Extrair projeto Android
+        run: |
+          mkdir -p projeto
+          unzip -o "ListaPagamentosAndroid_Celular (1).zip" -d projeto
+          WRAPPER="$(find projeto -type f -name gradlew -print -quit)"
+          if [ -z "$WRAPPER" ]; then
+            echo "ERRO: não foi encontrado o gradlew dentro do ZIP."
+            exit 1
+          fi
+          echo "PROJECT_DIR=$(dirname "$WRAPPER")" >> "$GITHUB_ENV"
+          chmod +x "$WRAPPER"
+
+      - name: Compilar APK
+        run: cd "$PROJECT_DIR" && ./gradlew assembleDebug
+
+      - name: Disponibilizar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lista-de-Pagamentos-APK
+          path: projeto/**/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
